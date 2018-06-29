@@ -25,17 +25,19 @@ class Block
         // create the block data and check it against the signature
         $info = "{$generator}-{$height}-{$date}-{$nonce}-{$json}-{$difficulty}-{$argon}";
         if (!$acc->check_signature($info, $signature, $public_key)) {
-            _log("Block signature check failed");
+            _log('Block signature check failed');
+
             return false;
         }
 
         if (!$this->parse_block($hash, $height, $data, true)) {
-            _log("Parse block failed");
+            _log('Parse block failed');
+
             return false;
         }
 
         // lock table to avoid race conditions on blocks
-        $db->exec("LOCK TABLES blocks WRITE, accounts WRITE, transactions WRITE, mempool WRITE");
+        $db->exec('LOCK TABLES blocks WRITE, accounts WRITE, transactions WRITE, mempool WRITE');
 
         $reward = $this->reward($height, $data);
 
@@ -43,22 +45,23 @@ class Block
 
         // the reward transaction
         $transaction = [
-            "src"        => $generator,
-            "dst"        => $generator,
-            "val"        => $reward,
-            "version"    => 0,
-            "date"       => $date,
-            "message"    => $msg,
-            "fee"        => "0.00000000",
-            "public_key" => $public_key,
+            'src'        => $generator,
+            'dst'        => $generator,
+            'val'        => $reward,
+            'version'    => 0,
+            'date'       => $date,
+            'message'    => $msg,
+            'fee'        => '0.00000000',
+            'public_key' => $public_key,
         ];
         $transaction['signature'] = $reward_signature;
         // hash the transaction
         $transaction['id'] = $trx->hash($transaction);
         // check the signature
-        $info = $transaction['val']."-".$transaction['fee']."-".$transaction['dst']."-".$transaction['message']."-".$transaction['version']."-".$transaction['public_key']."-".$transaction['date'];
+        $info = $transaction['val'].'-'.$transaction['fee'].'-'.$transaction['dst'].'-'.$transaction['message'].'-'.$transaction['version'].'-'.$transaction['public_key'].'-'.$transaction['date'];
         if (!$acc->check_signature($info, $reward_signature, $public_key)) {
-            _log("Reward signature failed");
+            _log('Reward signature failed');
+
             return false;
         }
 
@@ -66,25 +69,26 @@ class Block
         $db->beginTransaction();
         $total = count($data);
         $bind = [
-            ":id"           => $hash,
-            ":generator"    => $generator,
-            ":signature"    => $signature,
-            ":height"       => $height,
-            ":date"         => $date,
-            ":nonce"        => $nonce,
-            ":difficulty"   => $difficulty,
-            ":argon"        => $argon,
-            ":transactions" => $total,
+            ':id'           => $hash,
+            ':generator'    => $generator,
+            ':signature'    => $signature,
+            ':height'       => $height,
+            ':date'         => $date,
+            ':nonce'        => $nonce,
+            ':difficulty'   => $difficulty,
+            ':argon'        => $argon,
+            ':transactions' => $total,
         ];
         $res = $db->run(
-            "INSERT into blocks SET id=:id, generator=:generator, height=:height,`date`=:date,nonce=:nonce, signature=:signature, difficulty=:difficulty, argon=:argon, transactions=:transactions",
+            'INSERT into blocks SET id=:id, generator=:generator, height=:height,`date`=:date,nonce=:nonce, signature=:signature, difficulty=:difficulty, argon=:argon, transactions=:transactions',
             $bind
         );
         if ($res != 1) {
             // rollback and exit if it fails
-            _log("Block DB insert failed");
+            _log('Block DB insert failed');
             $db->rollback();
-            $db->exec("UNLOCK TABLES");
+            $db->exec('UNLOCK TABLES');
+
             return false;
         }
 
@@ -100,7 +104,8 @@ class Block
             $db->commit();
         }
         // relese the locking as everything is finished
-        $db->exec("UNLOCK TABLES");
+        $db->exec('UNLOCK TABLES');
+
         return true;
     }
 
@@ -108,11 +113,13 @@ class Block
     public function current()
     {
         global $db;
-        $current = $db->row("SELECT * FROM blocks ORDER by height DESC LIMIT 1");
+        $current = $db->row('SELECT * FROM blocks ORDER by height DESC LIMIT 1');
         if (!$current) {
             $this->genesis();
+
             return $this->current(true);
         }
+
         return $current;
     }
 
@@ -120,7 +127,7 @@ class Block
     public function prev()
     {
         global $db;
-        $current = $db->row("SELECT * FROM blocks ORDER by height DESC LIMIT 1,1");
+        $current = $db->row('SELECT * FROM blocks ORDER by height DESC LIMIT 1,1');
 
         return $current;
     }
@@ -136,7 +143,6 @@ class Block
         } else {
             $current = $this->get($height);
         }
-
 
         $height = $current['height'];
 
@@ -193,10 +199,11 @@ class Block
         global $db;
         $current = $this->current();
         $limit = $current['height'] - 100;
-        $avg = $db->single("SELECT AVG(transactions) FROM blocks WHERE height>:limit", [":limit" => $limit]);
+        $avg = $db->single('SELECT AVG(transactions) FROM blocks WHERE height>:limit', [':limit' => $limit]);
         if ($avg < 100) {
             return 100;
         }
+
         return ceil($avg * 1.1);
     }
 
@@ -221,6 +228,7 @@ class Block
                 $fees += $x['fee'];
             }
         }
+
         return number_format($reward + $fees, 8, '.', '');
     }
 
@@ -230,6 +238,7 @@ class Block
         // argon must have at least 20 chars
         if (strlen($data['argon']) < 20) {
             _log("Invalid block argon - $data[argon]");
+
             return false;
         }
         $acc = new Account();
@@ -237,18 +246,21 @@ class Block
 
         if (!$acc->valid_key($data['public_key'])) {
             _log("Invalid public key - $data[public_key]");
+
             return false;
         }
 
         //difficulty should be the same as our calculation
         if ($data['difficulty'] != $this->difficulty()) {
             _log("Invalid difficulty - $data[difficulty] - ".$this->difficulty());
+
             return false;
         }
 
         //check the argon hash and the nonce to produce a valid block
         if (!$this->mine($data['public_key'], $data['nonce'], $data['argon'])) {
-            _log("Mine check failed");
+            _log('Mine check failed');
+
             return false;
         }
 
@@ -260,7 +272,8 @@ class Block
     {
         //check the argon hash and the nonce to produce a valid block
         if (!$this->mine($public_key, $nonce, $argon)) {
-            _log("Forge failed - Invalid argon");
+            _log('Forge failed - Invalid argon');
+
             return false;
         }
 
@@ -269,14 +282,14 @@ class Block
         $height = $current['height'] += 1;
         $date = time();
         if ($date <= $current['date']) {
-            _log("Forge failed - Date older than last block");
+            _log('Forge failed - Date older than last block');
+
             return false;
         }
 
         // get the mempool transactions
         $txn = new Transaction();
         $data = $txn->mempool($this->max_transactions());
-
 
         $difficulty = $this->difficulty();
         $acc = new Account();
@@ -292,14 +305,14 @@ class Block
         $reward = $this->reward($height, $data);
         $msg = '';
         $transaction = [
-            "src"        => $generator,
-            "dst"        => $generator,
-            "val"        => $reward,
-            "version"    => 0,
-            "date"       => $date,
-            "message"    => $msg,
-            "fee"        => "0.00000000",
-            "public_key" => $public_key,
+            'src'        => $generator,
+            'dst'        => $generator,
+            'val'        => $reward,
+            'version'    => 0,
+            'date'       => $date,
+            'message'    => $msg,
+            'fee'        => '0.00000000',
+            'public_key' => $public_key,
         ];
         ksort($transaction);
         $reward_signature = $txn->sign($transaction, $private_key);
@@ -317,9 +330,11 @@ class Block
             $argon
         );
         if (!$res) {
-            _log("Forge failed - Block->Add() failed");
+            _log('Forge failed - Block->Add() failed');
+
             return false;
         }
+
         return true;
     }
 
@@ -348,7 +363,6 @@ class Block
         // the hash base for agon
         $base = "$public_key-$nonce-".$current_id."-$difficulty";
 
-
         // check argon's hash validity
         if (!password_verify($base, $argon)) {
             return false;
@@ -365,9 +379,9 @@ class Block
         // hash the base 6 times
         for ($i = 0; $i < 5;
              $i++) {
-            $hash = hash("sha512", $hash, true);
+            $hash = hash('sha512', $hash, true);
         }
-        $hash = hash("sha512", $hash);
+        $hash = hash('sha512', $hash);
 
         // split it in 2 char substrings, to be used as hex
         $m = str_split($hash, 2);
@@ -385,9 +399,9 @@ class Block
         if ($result > 0 && $result <= 240) {
             return true;
         }
+
         return false;
     }
-
 
     // parse the block transactions
     public function parse_block($block, $height, $data, $test = true)
@@ -426,7 +440,7 @@ class Block
             $balance[$x['src']] += $x['val'] + $x['fee'];
 
             // check if the transaction is already on the blockchain
-            if ($db->single("SELECT COUNT(1) FROM transactions WHERE id=:id", [":id" => $x['id']]) > 0) {
+            if ($db->single('SELECT COUNT(1) FROM transactions WHERE id=:id', [':id' => $x['id']]) > 0) {
                 return false;
             }
         }
@@ -434,8 +448,8 @@ class Block
         // check if the account has enough balance to perform the transaction
         foreach ($balance as $id => $bal) {
             $res = $db->single(
-                "SELECT COUNT(1) FROM accounts WHERE id=:id AND balance>=:balance",
-                [":id" => $id, ":balance" => $bal]
+                'SELECT COUNT(1) FROM accounts WHERE id=:id AND balance>=:balance',
+                [':id' => $id, ':balance' => $bal]
             );
             if ($res == 0) {
                 return false; // not enough balance for the transactions
@@ -455,7 +469,6 @@ class Block
         return true;
     }
 
-
     // initialize the blockchain, add the genesis block
     private function genesis()
     {
@@ -466,12 +479,11 @@ class Block
         $reward_signature = '381yXZ3yq2AXHHdXfEm8TDHS4xJ6nkV4suXtUUvLjtvuyi17jCujtwcwXuYALM1F3Wiae2A4yJ6pXL1kTHJxZbrJNgtsKEsb';
         $argon = '$M1ZpVzYzSUxYVFp6cXEwWA$CA6p39MVX7bvdXdIIRMnJuelqequanFfvcxzQjlmiik';
 
-        $difficulty = "5555555555";
+        $difficulty = '5555555555';
         $height = 1;
         $data = [];
         $date = '1515324995';
         $nonce = '4QRKTSJ+i9Gf9ubPo487eSi+eWOnIBt9w4Y+5J+qbh8=';
-
 
         $res = $this->add(
             $height,
@@ -485,7 +497,7 @@ class Block
             $argon
         );
         if (!$res) {
-            api_err("Could not add the genesis block.");
+            api_err('Could not add the genesis block.');
         }
     }
 
@@ -505,80 +517,83 @@ class Block
         global $db;
         $trx = new Transaction();
 
-        $r = $db->run("SELECT * FROM blocks WHERE height>=:height ORDER by height DESC", [":height" => $height]);
+        $r = $db->run('SELECT * FROM blocks WHERE height>=:height ORDER by height DESC', [':height' => $height]);
 
         if (count($r) == 0) {
             return;
         }
         $db->beginTransaction();
-        $db->exec("LOCK TABLES blocks WRITE, accounts WRITE, transactions WRITE, mempool WRITE");
+        $db->exec('LOCK TABLES blocks WRITE, accounts WRITE, transactions WRITE, mempool WRITE');
         foreach ($r as $x) {
             $res = $trx->reverse($x['id']);
             if ($res === false) {
                 $db->rollback();
-                $db->exec("UNLOCK TABLES");
+                $db->exec('UNLOCK TABLES');
+
                 return false;
             }
-            $res = $db->run("DELETE FROM blocks WHERE id=:id", [":id" => $x['id']]);
+            $res = $db->run('DELETE FROM blocks WHERE id=:id', [':id' => $x['id']]);
             if ($res != 1) {
                 $db->rollback();
-                $db->exec("UNLOCK TABLES");
+                $db->exec('UNLOCK TABLES');
+
                 return false;
             }
         }
 
         $db->commit();
-        $db->exec("UNLOCK TABLES");
+        $db->exec('UNLOCK TABLES');
+
         return true;
     }
-
 
     // delete specific block
     public function delete_id($id)
     {
-
         global $db;
         $trx = new Transaction();
 
-        $x = $db->row("SELECT * FROM blocks WHERE id=:id", [":id" => $id]);
+        $x = $db->row('SELECT * FROM blocks WHERE id=:id', [':id' => $id]);
 
         if ($x === false) {
             return false;
         }
         // avoid race conditions on blockchain manipulations
         $db->beginTransaction();
-        $db->exec("LOCK TABLES blocks WRITE, accounts WRITE, transactions WRITE, mempool WRITE");
+        $db->exec('LOCK TABLES blocks WRITE, accounts WRITE, transactions WRITE, mempool WRITE');
         // reverse all transactions of the block
         $res = $trx->reverse($x['id']);
         if ($res === false) {
             // rollback if you can't reverse the transactions
             $db->rollback();
-            $db->exec("UNLOCK TABLES");
+            $db->exec('UNLOCK TABLES');
+
             return false;
         }
         // remove the actual block
-        $res = $db->run("DELETE FROM blocks WHERE id=:id", [":id" => $x['id']]);
+        $res = $db->run('DELETE FROM blocks WHERE id=:id', [':id' => $x['id']]);
         if ($res != 1) {
             //rollback if you can't delete the block
             $db->rollback();
-            $db->exec("UNLOCK TABLES");
+            $db->exec('UNLOCK TABLES');
+
             return false;
         }
         // commit and release if all good
         $db->commit();
-        $db->exec("UNLOCK TABLES");
+        $db->exec('UNLOCK TABLES');
+
         return true;
     }
-
 
     // sign a new block, used when mining
     public function sign($generator, $height, $date, $nonce, $data, $key, $difficulty, $argon)
     {
-
         $json = json_encode($data);
         $info = "{$generator}-{$height}-{$date}-{$nonce}-{$json}-{$difficulty}-{$argon}";
 
         $signature = ec_sign($info, $key);
+
         return $signature;
     }
 
@@ -586,13 +601,13 @@ class Block
     public function hash($public_key, $height, $date, $nonce, $data, $signature, $difficulty, $argon)
     {
         $json = json_encode($data);
-        $hash = hash("sha512", "{$public_key}-{$height}-{$date}-{$nonce}-{$json}-{$signature}-{$difficulty}-{$argon}");
+        $hash = hash('sha512', "{$public_key}-{$height}-{$date}-{$nonce}-{$json}-{$signature}-{$difficulty}-{$argon}");
+
         return hex2coin($hash);
     }
 
-
     // exports the block data, to be used when submitting to other peers
-    public function export($id = "", $height = "")
+    public function export($id = '', $height = '')
     {
         if (empty($id) && empty($height)) {
             return false;
@@ -601,27 +616,27 @@ class Block
         global $db;
         $trx = new Transaction();
         if (!empty($height)) {
-            $block = $db->row("SELECT * FROM blocks WHERE height=:height", [":height" => $height]);
+            $block = $db->row('SELECT * FROM blocks WHERE height=:height', [':height' => $height]);
         } else {
-            $block = $db->row("SELECT * FROM blocks WHERE id=:id", [":id" => $id]);
+            $block = $db->row('SELECT * FROM blocks WHERE id=:id', [':id' => $id]);
         }
 
         if (!$block) {
             return false;
         }
-        $r = $db->run("SELECT * FROM transactions WHERE version>0 AND block=:block", [":block" => $block['id']]);
+        $r = $db->run('SELECT * FROM transactions WHERE version>0 AND block=:block', [':block' => $block['id']]);
         $transactions = [];
         foreach ($r as $x) {
             $trans = [
-                "id"         => $x['id'],
-                "dst"        => $x['dst'],
-                "val"        => $x['val'],
-                "fee"        => $x['fee'],
-                "signature"  => $x['signature'],
-                "message"    => $x['message'],
-                "version"    => $x['version'],
-                "date"       => $x['date'],
-                "public_key" => $x['public_key'],
+                'id'         => $x['id'],
+                'dst'        => $x['dst'],
+                'val'        => $x['val'],
+                'fee'        => $x['fee'],
+                'signature'  => $x['signature'],
+                'message'    => $x['message'],
+                'version'    => $x['version'],
+                'date'       => $x['date'],
+                'public_key' => $x['public_key'],
             ];
             ksort($trans);
             $transactions[$x['id']] = $trans;
@@ -631,11 +646,12 @@ class Block
 
         // the reward transaction always has version 0
         $gen = $db->row(
-            "SELECT public_key, signature FROM transactions WHERE  version=0 AND block=:block",
-            [":block" => $block['id']]
+            'SELECT public_key, signature FROM transactions WHERE  version=0 AND block=:block',
+            [':block' => $block['id']]
         );
         $block['public_key'] = $gen['public_key'];
         $block['reward_signature'] = $gen['signature'];
+
         return $block;
     }
 
@@ -646,7 +662,8 @@ class Block
         if (empty($height)) {
             return false;
         }
-        $block = $db->row("SELECT * FROM blocks WHERE height=:height", [":height" => $height]);
+        $block = $db->row('SELECT * FROM blocks WHERE height=:height', [':height' => $height]);
+
         return $block;
     }
 }

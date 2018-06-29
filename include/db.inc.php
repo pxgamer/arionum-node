@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Class DB
+ * Class DB.
  *
  * A simple wrapper for PDO.
  */
@@ -11,9 +11,9 @@ class DB extends PDO
     private $sql;
     private $bind;
     private $debugger = 0;
-    public $working = "yes";
+    public $working = 'yes';
 
-    public function __construct($dsn, $user = "", $passwd = "", $debug_level = 0)
+    public function __construct($dsn, $user = '', $passwd = '', $debug_level = 0)
     {
         $options = [
             PDO::ATTR_PERSISTENT       => true,
@@ -21,11 +21,12 @@ class DB extends PDO
             PDO::ATTR_ERRMODE          => PDO::ERRMODE_EXCEPTION,
         ];
         $this->debugger = $debug_level;
+
         try {
             parent::__construct($dsn, $user, $passwd, $options);
         } catch (PDOException $e) {
             $this->error = $e->getMessage();
-            die("Could not connect to the DB - ".$this->error);
+            die('Could not connect to the DB - '.$this->error);
         }
     }
 
@@ -34,24 +35,24 @@ class DB extends PDO
         if (!$this->debugger) {
             return;
         }
-        $error = ["Error" => $this->error];
+        $error = ['Error' => $this->error];
         if (!empty($this->sql)) {
-            $error["SQL Statement"] = $this->sql;
+            $error['SQL Statement'] = $this->sql;
         }
         if (!empty($this->bind)) {
-            $error["Bind Parameters"] = trim(print_r($this->bind, true));
+            $error['Bind Parameters'] = trim(print_r($this->bind, true));
         }
 
         $backtrace = debug_backtrace();
         if (!empty($backtrace)) {
             foreach ($backtrace as $info) {
-                if ($info["file"] != __FILE__) {
-                    $error["Backtrace"] = $info["file"]." at line ".$info["line"];
+                if ($info['file'] != __FILE__) {
+                    $error['Backtrace'] = $info['file'].' at line '.$info['line'];
                 }
             }
         }
-        $msg = "";
-        $msg .= "SQL Error\n".str_repeat("-", 50);
+        $msg = '';
+        $msg .= "SQL Error\n".str_repeat('-', 50);
         foreach ($error as $key => $val) {
             $msg .= "\n\n$key:\n$val";
         }
@@ -61,7 +62,7 @@ class DB extends PDO
         }
     }
 
-    private function cleanup($bind, $sql = "")
+    private function cleanup($bind, $sql = '')
     {
         if (!is_array($bind)) {
             if (!empty($bind)) {
@@ -72,18 +73,20 @@ class DB extends PDO
         }
 
         foreach ($bind as $key => $val) {
-            if (str_replace($key, "", $sql) == $sql) {
+            if (str_replace($key, '', $sql) == $sql) {
                 unset($bind[$key]);
             }
         }
+
         return $bind;
     }
 
-    public function single($sql, $bind = "")
+    public function single($sql, $bind = '')
     {
         $this->sql = trim($sql);
         $this->bind = $this->cleanup($bind, $sql);
-        $this->error = "";
+        $this->error = '';
+
         try {
             $pdostmt = $this->prepare($this->sql);
             if ($pdostmt->execute($this->bind) !== false) {
@@ -92,33 +95,35 @@ class DB extends PDO
         } catch (PDOException $e) {
             $this->error = $e->getMessage();
             $this->debug();
+
             return false;
         }
     }
 
-    public function run($sql, $bind = "")
+    public function run($sql, $bind = '')
     {
         $this->sql = trim($sql);
         $this->bind = $this->cleanup($bind, $sql);
-        $this->error = "";
+        $this->error = '';
 
         try {
             $pdostmt = $this->prepare($this->sql);
             if ($pdostmt->execute($this->bind) !== false) {
-                if (preg_match("/^(".implode("|", ["select", "describe", "pragma"]).") /i", $this->sql)) {
+                if (preg_match('/^('.implode('|', ['select', 'describe', 'pragma']).') /i', $this->sql)) {
                     return $pdostmt->fetchAll(PDO::FETCH_ASSOC);
-                } elseif (preg_match("/^(".implode("|", ["delete", "insert", "update"]).") /i", $this->sql)) {
+                } elseif (preg_match('/^('.implode('|', ['delete', 'insert', 'update']).') /i', $this->sql)) {
                     return $pdostmt->rowCount();
                 }
             }
         } catch (PDOException $e) {
             $this->error = $e->getMessage();
             $this->debug();
+
             return false;
         }
     }
 
-    public function row($sql, $bind = "")
+    public function row($sql, $bind = '')
     {
         $query = $this->run($sql, $bind);
         if (count($query) == 0) {
@@ -131,6 +136,7 @@ class DB extends PDO
             foreach ($query as $row) {
                 $result = $row;
             }
+
             return $result;
         }
     }

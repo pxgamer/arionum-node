@@ -64,14 +64,13 @@ OR OTHER DEALINGS IN THE SOFTWARE.
  *       "data": "The requested action could not be completed."
  *     }
  */
-
-require_once("include/init.inc.php");
+require_once 'include/init.inc.php';
 error_reporting(0);
 $ip = san_ip($_SERVER['REMOTE_ADDR']);
 $ip = filter_var($ip, FILTER_VALIDATE_IP);
 
 if ($_config['public_api'] == false && !in_array($ip, $_config['allowed_hosts'])) {
-    api_err("private-api");
+    api_err('private-api');
 }
 
 $acc = new Account();
@@ -85,7 +84,7 @@ if (!empty($_POST['data'])) {
     $data = $_GET;
 }
 
-/**
+/*
  * @api {get} /api.php?q=getAddress  02. getAddress
  * @apiName getAddress
  * @apiGroup API
@@ -96,14 +95,14 @@ if (!empty($_POST['data'])) {
  * @apiSuccess {string} data Contains the address
  */
 
-if ($q == "getAddress") {
+if ($q == 'getAddress') {
     $public_key = $data['public_key'];
     if (strlen($public_key) < 32) {
-        api_err("Invalid public key");
+        api_err('Invalid public key');
     }
     api_echo($acc->get_address($public_key));
-} elseif ($q == "base58") {
-    /**
+} elseif ($q == 'base58') {
+    /*
      * @api {get} /api.php?q=base58  03. base58
      * @apiName base58
      * @apiGroup API
@@ -115,7 +114,7 @@ if ($q == "getAddress") {
      */
 
     api_echo(base58_encode($data['data']));
-} elseif ($q == "getBalance") {
+} elseif ($q == 'getBalance') {
     /**
      * @api {get} /api.php?q=getBalance  04. getBalance
      * @apiName getBalance
@@ -127,21 +126,20 @@ if ($q == "getAddress") {
      *
      * @apiSuccess {string} data The ARO balance
      */
-
     $public_key = $data['public_key'];
     $account = $data['account'];
     if (!empty($public_key) && strlen($public_key) < 32) {
-        api_err("Invalid public key");
+        api_err('Invalid public key');
     }
     if (!empty($public_key)) {
         $account = $acc->get_address($public_key);
     }
     if (empty($account)) {
-        api_err("Invalid account id");
+        api_err('Invalid account id');
     }
     $account = san($account);
     api_echo($acc->balance($account));
-} elseif ($q == "getPendingBalance") {
+} elseif ($q == 'getPendingBalance') {
     /**
      * @api {get} /api.php?q=getPendingBalance  05. getPendingBalance
      * @apiName getPendingBalance
@@ -153,20 +151,19 @@ if ($q == "getAddress") {
      *
      * @apiSuccess {string} data The ARO balance
      */
-
     $account = $data['account'];
     if (!empty($public_key) && strlen($public_key) < 32) {
-        api_err("Invalid public key");
+        api_err('Invalid public key');
     }
     if (!empty($public_key)) {
         $account = $acc->get_address($public_key);
     }
     if (empty($account)) {
-        api_err("Invalid account id");
+        api_err('Invalid account id');
     }
     $account = san($account);
     api_echo($acc->pending_balance($account));
-} elseif ($q == "getTransactions") {
+} elseif ($q == 'getTransactions') {
     /**
      * @api {get} /api.php?q=getTransactions  06. getTransactions
      * @apiName getTransactions
@@ -192,23 +189,22 @@ if ($q == "getAddress") {
      * @apiSuccess {numeric} val Transaction value
      * @apiSuccess {numeric} version Transaction version
      */
-
     $account = san($data['account']);
     if (!empty($public_key) && strlen($public_key) < 32) {
-        api_err("Invalid public key");
+        api_err('Invalid public key');
     }
     if (!empty($public_key)) {
         $account = $acc->get_address($public_key);
     }
     if (empty($account)) {
-        api_err("Invalid account id");
+        api_err('Invalid account id');
     }
 
     $limit = intval($data['limit']);
     $transactions = $acc->get_mempool_transactions($account);
     $transactions = array_merge($transactions, $acc->get_transactions($account, $limit));
     api_echo($transactions);
-} elseif ($q == "getTransaction") {
+} elseif ($q == 'getTransaction') {
     /**
      * @api {get} /api.php?q=getTransaction  07. getTransaction
      * @apiName getTransaction
@@ -232,17 +228,16 @@ if ($q == "getAddress") {
      * @apiSuccess {numeric} val Transaction value
      * @apiSuccess {numeric} version Transaction version
      */
-
     $id = san($data['transaction']);
     $res = $trx->get_transaction($id);
     if ($res === false) {
         $res = $trx->get_mempool_transaction($id);
         if ($res === false) {
-            api_err("invalid transaction");
+            api_err('invalid transaction');
         }
     }
     api_Echo($res);
-} elseif ($q == "getPublicKey") {
+} elseif ($q == 'getPublicKey') {
     /**
      * @api {get} /api.php?q=getPublicKey  08. getPublicKey
      * @apiName getPublicKey
@@ -253,18 +248,17 @@ if ($q == "getAddress") {
      *
      * @apiSuccess {string} data The public key
      */
-
     $account = san($data['account']);
     if (empty($account)) {
-        api_err("Invalid account id");
+        api_err('Invalid account id');
     }
     $public_key = $acc->public_key($account);
     if ($public_key === false) {
-        api_err("No public key found for this account");
+        api_err('No public key found for this account');
     } else {
         api_echo($public_key);
     }
-} elseif ($q == "generateAccount") {
+} elseif ($q == 'generateAccount') {
     /**
      * @api {get} /api.php?q=generateAccount  09. generateAccount
      * @apiName generateAccount
@@ -275,11 +269,10 @@ if ($q == "getAddress") {
      * @apiSuccess {string} public_key Public key
      * @apiSuccess {string} private_key Private key
      */
-
     $acc = new Account();
     $res = $acc->generate_account();
     api_echo($res);
-} elseif ($q == "currentBlock") {
+} elseif ($q == 'currentBlock') {
     /**
      * @api {get} /api.php?q=currentBlock  10. currentBlock
      * @apiName currentBlock
@@ -295,10 +288,9 @@ if ($q == "getAddress") {
      * @apiSuccess {numeric} difficulty The base target / difficulty
      * @apiSuccess {string} argon Mining argon hash
      */
-
     $current = $block->current();
     api_echo($current);
-} elseif ($q == "getBlock") {
+} elseif ($q == 'getBlock') {
     /**
      * @api {get} /api.php?q=getBlock  11. getBlock
      * @apiName getBlock
@@ -319,11 +311,11 @@ if ($q == "getAddress") {
     $height = san($data['height']);
     $ret = $block->get($height);
     if ($ret == false) {
-        api_err("Invalid block");
+        api_err('Invalid block');
     } else {
         api_echo($ret);
     }
-} elseif ($q == "getBlockTransactions") {
+} elseif ($q == 'getBlockTransactions') {
     /**
      * @api {get} /api.php?q=getBlockTransactions  12. getBlockTransactions
      * @apiName getBlockTransactions
@@ -352,12 +344,12 @@ if ($q == "getAddress") {
     $block = san($data['block']);
     $ret = $trx->get_transactions($height, $block);
     if ($ret === false) {
-        api_err("Invalid block");
+        api_err('Invalid block');
     } else {
         api_echo($ret);
     }
-} elseif ($q == "version") {
-    /**
+} elseif ($q == 'version') {
+    /*
      * @api {get} /api.php?q=version  13. version
      * @apiName version
      * @apiGroup API
@@ -367,7 +359,7 @@ if ($q == "getAddress") {
      * @apiSuccess {string} data  Version
      */
     api_echo(VERSION);
-} elseif ($q == "send") {
+} elseif ($q == 'send') {
     /**
      * @api {get} /api.php?q=send  14. send
      * @apiName send
@@ -388,7 +380,7 @@ if ($q == "getAddress") {
     $current = $block->current();
 
     if ($current['height'] > 10790 && $current['height'] < 10810) {
-        api_err("Hard fork in progress. Please retry the transaction later!"); //10800
+        api_err('Hard fork in progress. Please retry the transaction later!'); //10800
     }
 
     $acc = new Account();
@@ -399,25 +391,24 @@ if ($q == "getAddress") {
     $dst = san($data['dst']);
 
     if (!$acc->valid($dst)) {
-        api_err("Invalid destination address");
+        api_err('Invalid destination address');
     }
     $dst_b = base58_decode($dst);
     if (strlen($dst_b) != 64) {
-        api_err("Invalid destination address");
+        api_err('Invalid destination address');
     }
-
 
     $public_key = san($data['public_key']);
     if (!$acc->valid_key($public_key)) {
-        api_err("Invalid public key");
+        api_err('Invalid public key');
     }
     $private_key = san($data['private_key']);
     if (!$acc->valid_key($private_key)) {
-        api_err("Invalid private key");
+        api_err('Invalid private key');
     }
     $signature = san($data['signature']);
     if (!$acc->valid_key($signature)) {
-        api_err("Invalid signature");
+        api_err('Invalid signature');
     }
     $date = $data['date'] + 0;
 
@@ -425,15 +416,15 @@ if ($q == "getAddress") {
         $date = time();
     }
     if ($date < time() - (3600 * 24 * 48)) {
-        api_err("The date is too old");
+        api_err('The date is too old');
     }
     if ($date > time() + 86400) {
-        api_err("Invalid Date");
+        api_err('Invalid Date');
     }
     $version = intval($data['version']);
     $message = $data['message'];
     if (strlen($message) > 128) {
-        api_err("The message must be less than 128 chars");
+        api_err('The message must be less than 128 chars');
     }
     $val = $data['val'] + 0;
     $fee = $val * 0.0025;
@@ -441,12 +432,11 @@ if ($q == "getAddress") {
         $fee = 0.00000001;
     }
 
-
     if ($fee > 10 && $current['height'] > 10800) {
         $fee = 10; //10800
     }
     if ($val < 0.00000001) {
-        api_err("Invalid value");
+        api_err('Invalid value');
     }
 
     if ($version < 1) {
@@ -456,14 +446,12 @@ if ($q == "getAddress") {
     $val = number_format($val, 8, '.', '');
     $fee = number_format($fee, 8, '.', '');
 
-
     if (empty($public_key) && empty($private_key)) {
-        api_err("Either the private key or the public key must be sent");
+        api_err('Either the private key or the public key must be sent');
     }
 
-
     if (empty($private_key) && empty($signature)) {
-        api_err("Either the private_key or the signature must be sent");
+        api_err('Either the private_key or the signature must be sent');
     }
     if (empty($public_key)) {
         $pk = coin2pem($private_key, true);
@@ -472,14 +460,14 @@ if ($q == "getAddress") {
         $public_key = pem2coin($pub['key']);
     }
     $transaction = [
-        "val"        => $val,
-        "fee"        => $fee,
-        "dst"        => $dst,
-        "public_key" => $public_key,
-        "date"       => $date,
-        "version"    => $version,
-        "message"    => $message,
-        "signature"  => $signature,
+        'val'        => $val,
+        'fee'        => $fee,
+        'dst'        => $dst,
+        'public_key' => $public_key,
+        'date'       => $date,
+        'version'    => $version,
+        'message'    => $message,
+        'signature'  => $signature,
     ];
 
     if (!empty($private_key)) {
@@ -487,45 +475,39 @@ if ($q == "getAddress") {
         $transaction['signature'] = $signature;
     }
 
-
     $hash = $trx->hash($transaction);
     $transaction['id'] = $hash;
 
-
     if (!$trx->check($transaction)) {
-        api_err("Transaction signature failed");
+        api_err('Transaction signature failed');
     }
 
-
-    $res = $db->single("SELECT COUNT(1) FROM mempool WHERE id=:id", [":id" => $hash]);
+    $res = $db->single('SELECT COUNT(1) FROM mempool WHERE id=:id', [':id' => $hash]);
     if ($res != 0) {
-        api_err("The transaction is already in mempool");
+        api_err('The transaction is already in mempool');
     }
 
-    $res = $db->single("SELECT COUNT(1) FROM transactions WHERE id=:id", [":id" => $hash]);
+    $res = $db->single('SELECT COUNT(1) FROM transactions WHERE id=:id', [':id' => $hash]);
     if ($res != 0) {
-        api_err("The transaction is already in a block");
+        api_err('The transaction is already in a block');
     }
-
 
     $src = $acc->get_address($public_key);
     $transaction['src'] = $src;
-    $balance = $db->single("SELECT balance FROM accounts WHERE id=:id", [":id" => $src]);
+    $balance = $db->single('SELECT balance FROM accounts WHERE id=:id', [':id' => $src]);
     if ($balance < $val + $fee) {
-        api_err("Not enough funds");
+        api_err('Not enough funds');
     }
 
-
-    $memspent = $db->single("SELECT SUM(val+fee) FROM mempool WHERE src=:src", [":src" => $src]);
+    $memspent = $db->single('SELECT SUM(val+fee) FROM mempool WHERE src=:src', [':src' => $src]);
     if ($balance - $memspent < $val + $fee) {
-        api_err("Not enough funds (mempool)");
+        api_err('Not enough funds (mempool)');
     }
 
-
-    $trx->add_mempool($transaction, "local");
+    $trx->add_mempool($transaction, 'local');
     system("php propagate.php transaction $hash > /dev/null 2>&1  &");
     api_echo($hash);
-} elseif ($q == "mempoolSize") {
+} elseif ($q == 'mempoolSize') {
     /**
      * @api {get} /api.php?q=mempoolSize  15. mempoolSize
      * @apiName mempoolSize
@@ -534,8 +516,7 @@ if ($q == "getAddress") {
      *
      * @apiSuccess {numeric} data  Number of mempool transactions
      */
-
-    $res = $db->single("SELECT COUNT(1) FROM mempool");
+    $res = $db->single('SELECT COUNT(1) FROM mempool');
     api_echo($res);
 } elseif ($q == 'randomNumber') {
     /**
@@ -550,7 +531,6 @@ if ($q == "getAddress") {
      * @apiParam {string} seed A seed to generate different numbers for each use cases.
      * @apiSuccess {numeric} data  The random number
      */
-
     $height = san($_GET['height']);
     $max = intval($_GET['max']);
     if (empty($_GET['min'])) {
@@ -559,11 +539,11 @@ if ($q == "getAddress") {
         $min = intval($_GET['min']);
     }
 
-    $blk = $db->single("SELECT id FROM blocks WHERE height=:h", [":h" => $height]);
+    $blk = $db->single('SELECT id FROM blocks WHERE height=:h', [':h' => $height]);
     if ($blk === false) {
-        api_err("Unknown block. Future?");
+        api_err('Unknown block. Future?');
     }
-    $base = hash("sha256", $blk.$_GET['seed']);
+    $base = hash('sha256', $blk.$_GET['seed']);
 
     $seed1 = hexdec(substr($base, 0, 12));
     // generate random numbers based on the seed
@@ -571,5 +551,5 @@ if ($q == "getAddress") {
     $res = mt_rand($min, $max);
     api_echo($res);
 } else {
-    api_err("Invalid request");
+    api_err('Invalid request');
 }

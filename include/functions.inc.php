@@ -1,22 +1,24 @@
 <?php
 
 // simple santization function to accept only alphanumeric characters
-function san($a, $b = "")
+function san($a, $b = '')
 {
-    $a = preg_replace("/[^a-zA-Z0-9".$b."]/", "", $a);
+    $a = preg_replace('/[^a-zA-Z0-9'.$b.']/', '', $a);
 
     return $a;
 }
 
 function san_ip($a)
 {
-    $a = preg_replace("/[^a-fA-F0-9\[\]\.\:]/", "", $a);
+    $a = preg_replace("/[^a-fA-F0-9\[\]\.\:]/", '', $a);
+
     return $a;
 }
 
 function san_host($a)
 {
-    $a = preg_replace("/[^a-zA-Z0-9\.\-\:\/]/", "", $a);
+    $a = preg_replace("/[^a-zA-Z0-9\.\-\:\/]/", '', $a);
+
     return $a;
 }
 
@@ -24,7 +26,7 @@ function san_host($a)
 function api_err($data)
 {
     global $_config;
-    echo json_encode(["status" => "error", "data" => $data, "coin" => $_config['coin']]);
+    echo json_encode(['status' => 'error', 'data' => $data, 'coin' => $_config['coin']]);
     exit;
 }
 
@@ -32,22 +34,22 @@ function api_err($data)
 function api_echo($data)
 {
     global $_config;
-    echo json_encode(["status" => "ok", "data" => $data, "coin" => $_config['coin']]);
+    echo json_encode(['status' => 'ok', 'data' => $data, 'coin' => $_config['coin']]);
     exit;
 }
 
 // log function, shows only in cli atm
 function _log($data)
 {
-    $date = date("[Y-m-d H:i:s]");
+    $date = date('[Y-m-d H:i:s]');
     $trace = debug_backtrace();
     $loc = count($trace) - 1;
-    $file = substr($trace[$loc]['file'], strrpos($trace[$loc]['file'], "/") + 1);
+    $file = substr($trace[$loc]['file'], strrpos($trace[$loc]['file'], '/') + 1);
 
-    $res = "$date ".$file.":".$trace[$loc]['line'];
+    $res = "$date ".$file.':'.$trace[$loc]['line'];
 
     if (!empty($trace[$loc]['class'])) {
-        $res .= "---".$trace[$loc]['class'];
+        $res .= '---'.$trace[$loc]['class'];
     }
     if (!empty($trace[$loc]['function']) && $trace[$loc]['function'] != '_log') {
         $res .= '->'.$trace[$loc]['function'].'()';
@@ -65,13 +67,14 @@ function _log($data)
 // converts PEM key to hex
 function pem2hex($data)
 {
-    $data = str_replace("-----BEGIN PUBLIC KEY-----", "", $data);
-    $data = str_replace("-----END PUBLIC KEY-----", "", $data);
-    $data = str_replace("-----BEGIN EC PRIVATE KEY-----", "", $data);
-    $data = str_replace("-----END EC PRIVATE KEY-----", "", $data);
-    $data = str_replace("\n", "", $data);
+    $data = str_replace('-----BEGIN PUBLIC KEY-----', '', $data);
+    $data = str_replace('-----END PUBLIC KEY-----', '', $data);
+    $data = str_replace('-----BEGIN EC PRIVATE KEY-----', '', $data);
+    $data = str_replace('-----END EC PRIVATE KEY-----', '', $data);
+    $data = str_replace("\n", '', $data);
     $data = base64_decode($data);
     $data = bin2hex($data);
+
     return $data;
 }
 
@@ -83,9 +86,9 @@ function hex2pem($data, $is_private_key = false)
     if ($is_private_key) {
         return "-----BEGIN EC PRIVATE KEY-----\n".$data."\n-----END EC PRIVATE KEY-----";
     }
+
     return "-----BEGIN PUBLIC KEY-----\n".$data."\n-----END PUBLIC KEY-----";
 }
-
 
 // Base58 encoding/decoding functions - all credits go to https://github.com/stephen-hill/base58php
 function base58_encode($string)
@@ -127,7 +130,8 @@ function base58_encode($string)
         }
         break;
     }
-    return (string)$output;
+
+    return (string) $output;
 }
 
 function base58_decode($base58)
@@ -171,19 +175,19 @@ function base58_decode($base58)
         }
         break;
     }
+
     return $output;
 }
 
 // converts PEM key to the base58 version used by ARO
 function pem2coin($data)
 {
-    $data = str_replace("-----BEGIN PUBLIC KEY-----", "", $data);
-    $data = str_replace("-----END PUBLIC KEY-----", "", $data);
-    $data = str_replace("-----BEGIN EC PRIVATE KEY-----", "", $data);
-    $data = str_replace("-----END EC PRIVATE KEY-----", "", $data);
-    $data = str_replace("\n", "", $data);
+    $data = str_replace('-----BEGIN PUBLIC KEY-----', '', $data);
+    $data = str_replace('-----END PUBLIC KEY-----', '', $data);
+    $data = str_replace('-----BEGIN EC PRIVATE KEY-----', '', $data);
+    $data = str_replace('-----END EC PRIVATE KEY-----', '', $data);
+    $data = str_replace("\n", '', $data);
     $data = base64_decode($data);
-
 
     return base58_encode($data);
 }
@@ -200,6 +204,7 @@ function coin2pem($data, $is_private_key = false)
     if ($is_private_key) {
         return "-----BEGIN EC PRIVATE KEY-----\n".$data."\n-----END EC PRIVATE KEY-----\n";
     }
+
     return "-----BEGIN PUBLIC KEY-----\n".$data."\n-----END PUBLIC KEY-----\n";
 }
 
@@ -209,18 +214,15 @@ function ec_sign($data, $key)
     // transform the base58 key format to PEM
     $private_key = coin2pem($key, true);
 
-
     $pkey = openssl_pkey_get_private($private_key);
 
     $k = openssl_pkey_get_details($pkey);
-
 
     openssl_sign($data, $signature, $pkey, OPENSSL_ALGO_SHA256);
 
     // the signature will be base58 encoded
     return base58_encode($signature);
 }
-
 
 function ec_verify($data, $signature, $key)
 {
@@ -233,10 +235,10 @@ function ec_verify($data, $signature, $key)
 
     $res = openssl_verify($data, $signature, $pkey, OPENSSL_ALGO_SHA256);
 
-
     if ($res === 1) {
         return true;
     }
+
     return false;
 }
 
@@ -250,13 +252,12 @@ function peer_post($url, $data = [], $timeout = 60, $debug = false)
     $postdata = http_build_query(
         [
             'data' => json_encode($data),
-            "coin" => $_config['coin'],
+            'coin' => $_config['coin'],
         ]
     );
 
     $opts = [
-        'http' =>
-            [
+        'http' => [
                 'timeout' => $timeout,
                 'method'  => 'POST',
                 'header'  => 'Content-type: application/x-www-form-urlencoded',
@@ -273,9 +274,10 @@ function peer_post($url, $data = [], $timeout = 60, $debug = false)
     $res = json_decode($result, true);
 
     // the function will return false if something goes wrong
-    if ($res['status'] != "ok" || $res['coin'] != $_config['coin']) {
+    if ($res['status'] != 'ok' || $res['coin'] != $_config['coin']) {
         return false;
     }
+
     return $res['data'];
 }
 
@@ -283,6 +285,7 @@ function peer_post($url, $data = [], $timeout = 60, $debug = false)
 function hex2coin($hex)
 {
     $data = hex2bin($hex);
+
     return base58_encode($data);
 }
 
@@ -290,5 +293,6 @@ function hex2coin($hex)
 function coin2hex($data)
 {
     $bin = base58_decode($data);
+
     return bin2hex($bin);
 }
