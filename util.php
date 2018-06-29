@@ -26,13 +26,13 @@ OR OTHER DEALINGS IN THE SOFTWARE.
 
 // make sure it's not accessible in the browser
 if (php_sapi_name() !== 'cli') {
-    die("This should only be run as cli");
+    die('This should only be run as cli');
 }
 
-require_once("include/init.inc.php");
+require_once 'include/init.inc.php';
 $cmd = trim($argv[1]);
 
-/**
+/*
  * @api {php util.php} clean Clean
  * @apiName clean
  * @apiGroup UTIL
@@ -43,13 +43,13 @@ $cmd = trim($argv[1]);
  */
 
 if ($cmd == 'clean') {
-    $tables = ["blocks", "accounts", "transactions", "mempool"];
+    $tables = ['blocks', 'accounts', 'transactions', 'mempool'];
     foreach ($tables as $table) {
         $db->run("DELETE FROM {$table}");
     }
 
     echo "\n The database has been cleared\n";
-} /**
+} /*
  * @api {php util.php} pop Pop
  * @apiName pop
  * @apiGroup UTIL
@@ -65,7 +65,7 @@ elseif ($cmd == 'pop') {
     $no = intval($argv[2]);
     $block = new Block();
     $block->pop($no);
-} /**
+} /*
  * @api {php util.php} block-time Block-time
  * @apiName block-time
  * @apiGroup UTIL
@@ -83,7 +83,7 @@ elseif ($cmd == 'pop') {
 
 elseif ($cmd == 'block-time') {
     $t = time();
-    $r = $db->run("SELECT * FROM blocks ORDER by height DESC LIMIT 100");
+    $r = $db->run('SELECT * FROM blocks ORDER by height DESC LIMIT 100');
     $start = 0;
     foreach ($r as $x) {
         if ($start == 0) {
@@ -94,8 +94,8 @@ elseif ($cmd == 'block-time') {
         echo "$x[height] -> $time\n";
         $end = $x['date'];
     }
-    echo "Average block time: ".ceil(($start - $end) / 100)." seconds\n";
-} /**
+    echo 'Average block time: '.ceil(($start - $end) / 100)." seconds\n";
+} /*
  * @api {php util.php} peer Peer
  * @apiName peer
  * @apiGroup UTIL
@@ -110,15 +110,14 @@ elseif ($cmd == 'block-time') {
  * Peering OK
  */
 
-
-elseif ($cmd == "peer") {
-    $res = peer_post($argv[2]."/peer.php?q=peer", ["hostname" => $_config['hostname']]);
+elseif ($cmd == 'peer') {
+    $res = peer_post($argv[2].'/peer.php?q=peer', ['hostname' => $_config['hostname']]);
     if ($res !== false) {
         echo "Peering OK\n";
     } else {
         echo "Peering FAIL\n";
     }
-} /**
+} /*
  * @api {php util.php} current Current
  * @apiName current
  * @apiGroup UTIL
@@ -151,10 +150,10 @@ elseif ($cmd == "peer") {
  *
  */
 
-elseif ($cmd == "current") {
+elseif ($cmd == 'current') {
     $block = new Block();
     var_dump($block->current());
-} /**
+} /*
  * @api {php util.php} blocks Blocks
  * @apiName blocks
  * @apiGroup UTIL
@@ -175,17 +174,17 @@ elseif ($cmd == "current") {
  * 10805   5RBeWXo2c9NZ7UF2ubztk53PZpiA4tsk3bhXNXbcBk89cNqorNj771Qu4kthQN5hXLtu1hzUnv7nkH33hDxBM34m
  *
  */
-elseif ($cmd == "blocks") {
+elseif ($cmd == 'blocks') {
     $height = intval($argv[2]);
     $limit = intval($argv[3]);
     if ($limit < 1) {
         $limit = 100;
     }
-    $r = $db->run("SELECT * FROM blocks WHERE height>:height ORDER by height ASC LIMIT $limit", [":height" => $height]);
+    $r = $db->run("SELECT * FROM blocks WHERE height>:height ORDER by height ASC LIMIT $limit", [':height' => $height]);
     foreach ($r as $x) {
         echo "$x[height]\t$x[id]\n";
     }
-} /**
+} /*
  * @api {php util.php} recheck-blocks Recheck-Blocks
  * @apiName recheck-blocks
  * @apiGroup UTIL
@@ -195,10 +194,10 @@ elseif ($cmd == "blocks") {
  * php util.php recheck-blocks
  *
  */
-elseif ($cmd == "recheck-blocks") {
+elseif ($cmd == 'recheck-blocks') {
     $blocks = [];
     $block = new Block();
-    $r = $db->run("SELECT * FROM blocks ORDER by height ASC");
+    $r = $db->run('SELECT * FROM blocks ORDER by height ASC');
     foreach ($r as $x) {
         $blocks[$x['height']] = $x;
         $max_height = $x['height'];
@@ -206,7 +205,7 @@ elseif ($cmd == "recheck-blocks") {
     for ($i = 2; $i <= $max_height; $i++) {
         $data = $blocks[$i];
 
-        $key = $db->single("SELECT public_key FROM accounts WHERE id=:id", [":id" => $data['generator']]);
+        $key = $db->single('SELECT public_key FROM accounts WHERE id=:id', [':id' => $data['generator']]);
 
         if (!$block->mine(
             $key,
@@ -220,7 +219,7 @@ elseif ($cmd == "recheck-blocks") {
             break;
         }
     }
-} /**
+} /*
  * @api {php util.php} peers Peers
  * @apiName peers
  * @apiGroup UTIL
@@ -234,16 +233,16 @@ elseif ($cmd == "recheck-blocks") {
  * ...
  * http://aro.master.hashpi.com    active
  */
-elseif ($cmd == "peers") {
-    $r = $db->run("SELECT * FROM peers ORDER by reserve ASC");
-    $status = "active";
+elseif ($cmd == 'peers') {
+    $r = $db->run('SELECT * FROM peers ORDER by reserve ASC');
+    $status = 'active';
     if ($x['reserve'] == 1) {
-        $status = "reserve";
+        $status = 'reserve';
     }
     foreach ($r as $x) {
         echo "$x[hostname]\t$status\n";
     }
-} /**
+} /*
  * @api {php util.php} mempool Mempool
  * @apiName mempool
  * @apiGroup UTIL
@@ -255,10 +254,10 @@ elseif ($cmd == "peers") {
  * @apiSuccessExample {text} Success-Response:
  * Mempool size: 12
  */
-elseif ($cmd == "mempool") {
-    $res = $db->single("SELECT COUNT(1) from mempool");
+elseif ($cmd == 'mempool') {
+    $res = $db->single('SELECT COUNT(1) from mempool');
     echo "Mempool size: $res\n";
-} /**
+} /*
  * @api {php util.php} delete-peer Delete-peer
  * @apiName delete-peer
  * @apiGroup UTIL
@@ -272,25 +271,25 @@ elseif ($cmd == "mempool") {
  * @apiSuccessExample {text} Success-Response:
  * Peer removed
  */
-elseif ($cmd == "delete-peer") {
+elseif ($cmd == 'delete-peer') {
     $peer = trim($argv[2]);
     if (empty($peer)) {
-        die("Invalid peer");
+        die('Invalid peer');
     }
-    $db->run("DELETE FROM peers WHERE ip=:ip", [":ip" => $peer]);
+    $db->run('DELETE FROM peers WHERE ip=:ip', [':ip' => $peer]);
     echo "Peer removed\n";
-} elseif ($cmd == "recheck-peers") {
-    $r = $db->run("SELECT * FROM peers");
+} elseif ($cmd == 'recheck-peers') {
+    $r = $db->run('SELECT * FROM peers');
     foreach ($r as $x) {
-        $a = peer_post($x['hostname']."/peer.php?q=ping");
-        if ($a != "pong") {
+        $a = peer_post($x['hostname'].'/peer.php?q=ping');
+        if ($a != 'pong') {
             echo "$x[hostname] -> failed\n";
-            $db->run("DELETE FROM peers WHERE id=:id", [":id" => $x['id']]);
+            $db->run('DELETE FROM peers WHERE id=:id', [':id' => $x['id']]);
         } else {
             echo "$x[hostname] ->ok \n";
         }
     }
-} /**
+} /*
  * @api {php util.php} peers-block Peers-Block
  * @apiName peers-block
  * @apiGroup UTIL
@@ -304,24 +303,24 @@ elseif ($cmd == "delete-peer") {
  * ...
  * http://peer10.arionum.com        16849
  */
-elseif ($cmd == "peers-block") {
+elseif ($cmd == 'peers-block') {
     $only_diff = false;
-    if ($argv[2] == "diff") {
-        $current = $db->single("SELECT height FROM blocks ORDER by height DESC LIMIT 1");
+    if ($argv[2] == 'diff') {
+        $current = $db->single('SELECT height FROM blocks ORDER by height DESC LIMIT 1');
         $only_diff = true;
     }
-    $r = $db->run("SELECT * FROM peers WHERE blacklisted<UNIX_TIMESTAMP()");
+    $r = $db->run('SELECT * FROM peers WHERE blacklisted<UNIX_TIMESTAMP()');
     foreach ($r as $x) {
-        $a = peer_post($x['hostname']."/peer.php?q=currentBlock", [], 5);
+        $a = peer_post($x['hostname'].'/peer.php?q=currentBlock', [], 5);
         $enc = base58_encode($x['hostname']);
-        if ($argv[2] == "debug") {
+        if ($argv[2] == 'debug') {
             echo "$enc\t";
         }
         if ($only_diff == false || $current != $a['height']) {
             echo "$x[hostname]\t$a[height]\n";
         }
     }
-} /**
+} /*
  * @api {php util.php} balance Balance
  * @apiName balance
  * @apiGroup UTIL
@@ -336,15 +335,15 @@ elseif ($cmd == "peers-block") {
  * Balance: 2,487
  */
 
-elseif ($cmd == "balance") {
+elseif ($cmd == 'balance') {
     $id = san($argv[2]);
     $res = $db->single(
-        "SELECT balance FROM accounts WHERE id=:id OR public_key=:id2 LIMIT 1",
-        [":id" => $id, ":id2" => $id]
+        'SELECT balance FROM accounts WHERE id=:id OR public_key=:id2 LIMIT 1',
+        [':id' => $id, ':id2' => $id]
     );
 
-    echo "Balance: ".number_format($res)."\n";
-} /**
+    echo 'Balance: '.number_format($res)."\n";
+} /*
  * @api {php util.php} block Block
  * @apiName block
  * @apiGroup UTIL
@@ -377,12 +376,12 @@ elseif ($cmd == "balance") {
  *  int(0)
  * }
  */
-elseif ($cmd == "block") {
+elseif ($cmd == 'block') {
     $id = san($argv[2]);
-    $res = $db->row("SELECT * FROM blocks WHERE id=:id OR height=:id2 LIMIT 1", [":id" => $id, ":id2" => $id]);
+    $res = $db->row('SELECT * FROM blocks WHERE id=:id OR height=:id2 LIMIT 1', [':id' => $id, ':id2' => $id]);
 
     var_dump($res);
-} /**
+} /*
  * @api {php util.php} check-address Check-Address
  * @apiName check-address
  * @apiGroup UTIL
@@ -396,19 +395,19 @@ elseif ($cmd == "block") {
  * @apiSuccessExample {text} Success-Response:
  * The address is valid
  */
-elseif ($cmd == "check-address") {
+elseif ($cmd == 'check-address') {
     $dst = trim($argv[2]);
     $acc = new Account();
     if (!$acc->valid($dst)) {
-        die("Invalid address");
+        die('Invalid address');
     }
     $dst_b = base58_decode($dst);
     if (strlen($dst_b) != 64) {
-        die("Invalid address - ".strlen($dst_b)." bytes");
+        die('Invalid address - '.strlen($dst_b).' bytes');
     }
 
     echo "The address is valid\n";
-} /**
+} /*
  * @api {php util.php} get-address Get-Address
  * @apiName get-address
  * @apiGroup UTIL
@@ -426,9 +425,9 @@ elseif ($cmd == "check-address") {
 elseif ($cmd == 'get-address') {
     $public_key = trim($argv2);
     if (strlen($public_key) < 32) {
-        die("Invalid public key");
+        die('Invalid public key');
     }
-    print($acc->get_address($public_key));
+    echo $acc->get_address($public_key);
 } else {
     echo "Invalid command\n";
 }
