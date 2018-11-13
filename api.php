@@ -716,22 +716,23 @@ if ($q == "getAddress") {
      * @apiSuccess {number} data.masternodes The number of masternodes known by the node.
      * @apiSuccess {number} data.peers The number of valid peers.
      */
-    $dbVersion = $db->single("SELECT val FROM config WHERE cfg='dbversion'");
-    $hostname = $db->single("SELECT val FROM config WHERE cfg='hostname'");
-    $acc = $db->single("SELECT COUNT(1) FROM accounts");
-    $tr = $db->single("SELECT COUNT(1) FROM transactions");
-    $masternodes = $db->single("SELECT COUNT(1) FROM masternode");
-    $mempool = $db->single("SELECT COUNT(1) FROM mempool");
-    $peers = $db->single("SELECT COUNT(1) FROM peers WHERE blacklisted<UNIX_TIMESTAMP()");
+    $nodeInfo = $db->row('SELECT (SELECT val FROM `config` WHERE cfg = \'dbversion\') AS db_version,
+       (SELECT val FROM `config` WHERE cfg = \'hostname\') AS hostname,
+       (SELECT COUNT(*) FROM `accounts`) AS accounts,
+       (SELECT COUNT(*) FROM `transactions`) AS transactions,
+       (SELECT COUNT(*) FROM `masternode`) AS masternodes,
+       (SELECT COUNT(*) FROM `mempool`) AS mempool,
+       (SELECT COUNT(*) FROM `peers` WHERE blacklisted < UNIX_TIMESTAMP()) AS peers;');
+
     api_echo([
-        'hostname'     => $hostname,
+        'hostname'     => $nodeInfo['hostname'] ?? null,
         'version'      => VERSION,
-        'dbversion'    => $dbVersion,
-        'accounts'     => $acc,
-        'transactions' => $tr,
-        'mempool'      => $mempool,
-        'masternodes'  => $masternodes,
-        'peers'        => $peers
+        'dbversion'    => $nodeInfo['db_version'] ?? null,
+        'accounts'     => $nodeInfo['accounts'] ?? 0,
+        'transactions' => $nodeInfo['transactions'] ?? 0,
+        'mempool'      => $nodeInfo['mempool'] ?? 0,
+        'masternodes'  => $nodeInfo['masternodes'] ?? 0,
+        'peers'        => $nodeInfo['peers'] ?? 0,
     ]);
 } elseif ($q === 'checkAddress') {
     /**
